@@ -1,0 +1,11 @@
+{
+  "output_file": "config.json",  
+  "donate":{
+    "type"    : "button",
+    "label"   : "☕  ☕  Buy the dev a coffee  ☕  ☕",
+    "tooltip" : "Keep the development of free scripts going buying the developer a coffee!",
+    "function": "donate",
+    "wsevent" : "",
+    "group"   : ""
+  },
+}
