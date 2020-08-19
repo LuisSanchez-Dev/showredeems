@@ -5,6 +5,7 @@
 #   points directly on your Streamlabs Chatbot Console.
 # 
 # Versions
+#   1.0.1 - Fixed repeated messages when reloading script
 #   1.0.0 - Release
 
 import os
@@ -40,12 +41,12 @@ msgbox = lambda obj: Show(str(obj))
 Creator = "LuisSanchezDev"
 Description = "Show all rewards redeemed on Twitch using channel points directly on your Streamlabs Chatbot Console"
 ScriptName = "ShowRedeems"
-Version = "1.0"
+Version = "1.0.1"
 Website = "https://www.fiverr.com/luissanchezdev"
 
 # Define Global Variables
 path = os.path.dirname(os.path.realpath(__file__))
-client = None
+client = TwitchPubSub()
 
 # Initialize Data (Only called on load)
 def Init():
@@ -67,19 +68,9 @@ def Init():
     return
   casterid = json.loads(data)['user_id']
 
-  # Create a Twitch.PubSub client and register to listen to reward redeems
-  client = TwitchPubSub();
-  def connected(s, e):
-    client.SendTopics()
-  def reward(s, e):
-    message = "👉 " + e.DisplayName + " redeemed " + e.RewardTitle
-    message += " - " + e.RewardPrompt
-    _print(message)
-    if e.Message:
-      _print("📧 Message: " + e.Message)
-  
-  client.OnPubSubServiceConnected += connected
-  client.OnRewardRedeemed += reward
+  # Register the client to listen to reward redeems
+  client.OnPubSubServiceConnected += OnPubSubConnected
+  client.OnRewardRedeemed += OnRewardRedeemed
   client.ListenToRewards(casterid)
   client.Connect()
 
@@ -91,10 +82,30 @@ def Execute(data):
 def Tick():
   pass
 
+# Unload (Called when a user reloads their scripts or closes the bot / cleanup stuff)
+def Unload():
+  client.OnPubSubServiceConnected -= OnPubSubConnected
+  client.OnRewardRedeemed -= OnRewardRedeemed
+  client.Disconnect()
+  del client
+
 def GetOAuth():
   vmloc = AnkhBotR2.Managers.GlobalManager.Instance.VMLocator
   return vmloc.StreamerLogin.Token
 
+# On PubSub client connection
+def OnPubSubConnected(s, e):
+  client.SendTopics()
+  
+# On reward redeemed
+def OnRewardRedeemed(s, e):
+  message = "👉 " + e.DisplayName + " redeemed " + e.RewardTitle
+  message += " - " + e.RewardPrompt
+  _print(message)
+  if e.Message:
+    _print("📧 Message: " + e.Message)
+
+# Prints a message to the Console
 def _print(msg):
   g_manager = AnkhBotR2.Managers.GlobalManager.Instance
   handler = g_manager.SystemHandler
